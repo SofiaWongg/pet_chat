@@ -22,3 +22,16 @@ class Pet(BaseModel):
         if not os.path.exists(image_path):
             raise ValueError(f"Image path {image_path} does not exist")
         self.image_path = image_path
+
+
+    def chat(self, message: str):
+        gpt_prompt = f"""
+        You are a pet chatbot. You should pretend to be a {self.name} pet and should respond with a relevant message. Your personality is {self.personality.name} and your description is {self.personality.description}.Here is the message you received: {message}"""
+
+        response = openai.ChatCompletion.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": gpt_prompt}],
+            temperature=0.9,
+        )
+
+        return response.choices[0].message.content
