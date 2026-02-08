@@ -13,18 +13,12 @@ import openai
 # We have User -> Conversations -> Chat Messages
 
 @dataclass
-class Personality(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    name: str
-    description: str
-
-@dataclass
 class Pet(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
-    personality: Personality
     image_path: Optional[str] = None
     age: int
+    personality: str
 
     def set_image(self, image_path: str):
         if not os.path.exists(image_path):
