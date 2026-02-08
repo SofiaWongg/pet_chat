@@ -26,11 +26,15 @@ class Pet(BaseModel):
         self.image_path = image_path
 
 
-    def chat(self, message: str):
+    def chat(self, conversation_id: str):
+        #TODO:
+        #query database for converastion 
+        #format conversation to go into prompt 
+        conversation_history = ""
         openai.api_key = os.getenv("OPENAI_API_KEY")
         gpt_prompt = f"""
-        You are a pet chatbot. You should pretend to be a {self.name} pet and should respond with a relevant message. Your personality is {self.personality.name} and your description is {self.personality.description}.Here is the message you received: {message}"""
-
+        You are a pet chatbot. You should pretend to be a {self.name} pet and should respond with a relevant message. Your personality is {self.personality}. Here is the chat history: {conversation_history}. Please respond to the usser's latest message"""
+        # TODO: add response schema
         response = openai.ChatCompletion.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": gpt_prompt}],
