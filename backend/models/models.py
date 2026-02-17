@@ -1,24 +1,21 @@
 # make a basic interface in python for a class with two items:
 
-from dataclasses import dataclass
-import datetime
+from datetime import datetime
 import os
-import uuid
-from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import Optional
 import openai
+from sqlmodel import SQLModel, Field
+
+Base = SQLModel
 
 
-# Here wa have Pet -> Personality 
-# We have User -> Conversations -> Chat Messages
-
-@dataclass
-class Pet(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+class Pet(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True) # if we don't specify the id, it will be auto-generated
     name: str
     image_path: Optional[str] = None
     age: int
     personality: str
+    type: str
 
     def set_image(self, image_path: str):
         if not os.path.exists(image_path):
@@ -43,19 +40,17 @@ class Pet(BaseModel):
 
         return response.choices[0].message.content
 
-@dataclass
-class ChatMessage(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+class ChatMessage(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
     conversation_id: str
     message: str
     timestamp: datetime = Field(default_factory=lambda: datetime.now())
     sender_id: str
     receiver_id: str
 
-@dataclass
-class Conversation(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    messages: List[ChatMessage]
+class Conversation(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    # messages: List[ChatMessage] - we cant store objects in a list like this in columns
     user_id: str
     pet_id: str
     created_at: datetime = Field(default_factory=lambda: datetime.now())
@@ -66,7 +61,6 @@ class Conversation(BaseModel):
         self.updated_at = datetime.now()
     
 
-@dataclass
-class User(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+class User(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
     name: str
