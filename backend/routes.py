@@ -34,11 +34,11 @@ def get_pet_by_name_and_type(name: str, type: str, session: Session):
 
 
 @app.post("/pets/{pet_id}/chat")
-async def chat_with_pet(pet_id: str, message: str, session: Session = Depends(get_session)):
-    pet = get_pet_by_id(pet_id, session=session)
+async def chat_with_pet(pet_id: str, user_id: str, message: str, session: Session = Depends(get_session)):
+    pet: Pet = get_pet_by_id(pet_id, session=session)
     if not pet:
         return {"message": "Pet not found" }
-    return {"message": pet.chat(message)}
+    return {"message": pet.chat(user_id=user_id, session=session, message=message)}
 
 @app.get("/pets/{pet_id}")
 async def get_pet(pet_id: str, session: Session = Depends(get_session)):

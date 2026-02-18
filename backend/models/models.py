@@ -2,13 +2,48 @@
 
 from datetime import datetime
 import os
-from typing import Optional
-import openai
-from sqlmodel import SQLModel, Field
+from typing import List, Optional
+from sqlmodel import SQLModel, Field, Session, select
+from openai import OpenAI
+from pydantic import BaseModel
+client = OpenAI()
 
 Base = SQLModel
 
 
+class ChatMessage(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    conversation_id: str
+    message: str
+    timestamp: datetime = Field(default_factory=lambda: datetime.now())
+    sender_id: str
+    receiver_id: str
+
+class ChatMessageResponse(BaseModel):
+    message: str
+
+class User(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str
+
+class Conversation(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    # messages: List[ChatMessage] - we cant store objects in a list like this in columns
+    user_id: str
+    pet_id: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now())
+    updated_at: datetime = Field(default_factory=lambda: datetime.now())
+
+    def get_messages(self, session: Session) -> List[ChatMessage]:
+        return session.exec(select(ChatMessage).where((ChatMessage.conversation_id==self.id))).all()
+        
+    def add_message(self, message: str, sender_id: str, receiver_id: str, session: Session):
+        new_message = ChatMessage(conversation_id=self.id, message=message, sender_id=sender_id, receiver_id=receiver_id)
+        session.add(new_message)
+        session.commit()
+        session.refresh(new_message)
+        return new_message
+        
 class Pet(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True) # if we don't specify the id, it will be auto-generated
     name: str
@@ -22,45 +57,35 @@ class Pet(SQLModel, table=True):
             raise ValueError(f"Image path {image_path} does not exist")
         self.image_path = image_path
 
+    def get_conversation_history_by_user_id_and_pet_id(self, user_id: str, session: Session) -> Conversation:
+            return session.exec(select(Conversation).where((Conversation.user_id == user_id) & (Conversation.pet_id == self.id))).first()
 
-    def chat(self, conversation_id: str):
-        #TODO:
-        #query database for converastion 
-        #format conversation to go into prompt 
-        conversation_history = ""
-        openai.api_key = os.getenv("OPENAI_API_KEY")
+    def chat(self, user_id: str, session: Session, message: str):
+        conversation_history: Conversation = self.get_conversation_history_by_user_id_and_pet_id(user_id=user_id, session=session)
+        if not conversation_history:
+            new_conversation = Conversation(user_id=user_id, pet_id=self.id)
+            session.add(new_conversation)
+            session.commit()
+            session.refresh(new_conversation)
+            conversation_history = new_conversation
+        conversation_history.add_message(message=message, sender_id=user_id, receiver_id=self.id, session=session)
+        string_conversation_history: str = "\n".join([message.message for message in conversation_history.get_messages(session=session)])
         gpt_prompt = f"""
-        You are a pet chatbot. You should pretend to be a {self.name} pet and should respond with a relevant message. Your personality is {self.personality}. Here is the chat history: {conversation_history}. Please respond to the usser's latest message"""
-        # TODO: add response schema
-        response = openai.ChatCompletion.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": gpt_prompt}],
-            temperature=0.9,
+        You are a pet chatbot. You should pretend to be a {self.name} pet and should respond with a relevant message. Your personality is {self.personality}. Here is the chat history: {string_conversation_history}. Please respond to the usser's latest message"""
+        response = client.responses.parse(
+            model="gpt-4o-2024-08-06",
+            input=gpt_prompt,
+            text_format=ChatMessageResponse
         )
+        print("response: ", response)
+        print("response.output: ", response.output)
+        print("response.output[0]: ", response.output[0])
+        print("response.output[0].message: ", response.output[0].content)
+        print("response.output[0].content[0].parsed: ", response.output[0].content[0].parsed)
+        print("response.output[0].content[0].parsed.message: ", response.output[0].content[0].parsed.message)
+        new_message = response.output[0].content[0].parsed.message
 
-        return response.choices[0].message.content
+        conversation_history.add_message(message=new_message, sender_id=self.id, receiver_id=user_id, session=session)
 
-class ChatMessage(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    conversation_id: str
-    message: str
-    timestamp: datetime = Field(default_factory=lambda: datetime.now())
-    sender_id: str
-    receiver_id: str
+        return new_message
 
-class Conversation(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    # messages: List[ChatMessage] - we cant store objects in a list like this in columns
-    user_id: str
-    pet_id: str
-    created_at: datetime = Field(default_factory=lambda: datetime.now())
-    updated_at: datetime = Field(default_factory=lambda: datetime.now())
-
-    def add_message(self, message: ChatMessage):
-        self.messages.append(message)
-        self.updated_at = datetime.now()
-    
-
-class User(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    name: str
