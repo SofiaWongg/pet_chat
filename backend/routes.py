@@ -46,3 +46,7 @@ async def get_pet(pet_id: str, session: Session = Depends(get_session)):
     if not pet:
         return {"message": "Pet not found" }
     return pet
+
+@app.get("/pets")
+async def get_all_pets(session: Session = Depends(get_session)):
+    return session.exec(select(Pet)).all()

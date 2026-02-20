@@ -20,5 +20,3 @@ def load_pets():
     else:
         return []
 
-def get_conversation_by_user_id_and_pet_id(user_id: str, pet_id: str, session: Session) -> Conversation:
-    return session.exec(select(Conversation).where((Conversation.user_id == user_id) & (Conversation.pet_id == pet_id))).first()

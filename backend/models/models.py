@@ -71,7 +71,7 @@ class Pet(SQLModel, table=True):
         conversation_history.add_message(message=message, sender_id=user_id, receiver_id=self.id, session=session)
         string_conversation_history: str = "\n".join([message.message for message in conversation_history.get_messages(session=session)])
         gpt_prompt = f"""
-        You are a pet chatbot. You should pretend to be a {self.name} pet and should respond with a relevant message. Your personality is {self.personality}. Here is the chat history: {string_conversation_history}. Please respond to the usser's latest message"""
+        You are a pet chatbot. You should pretend to be a pet {self.type} named {self.name} and should respond with a relevant message. Your personality is {self.personality}. Here is the chat history: {string_conversation_history}. Please respond to the user's latest message"""
         response = client.responses.parse(
             model="gpt-4o-2024-08-06",
             input=gpt_prompt,
