@@ -1,6 +1,7 @@
 # make a basic interface in python for a class with two items:
 
 from datetime import datetime
+from enum import Enum
 import os
 from typing import List, Optional
 from sqlmodel import SQLModel, Field, Session, select
@@ -16,7 +17,7 @@ class ChatMessage(SQLModel, table=True):
     conversation_id: str
     message: str
     timestamp: datetime = Field(default_factory=lambda: datetime.now())
-    sender_id: str
+    sender_id: int
     receiver_id: str
 
 class ChatMessageResponse(BaseModel):
@@ -77,15 +78,20 @@ class Pet(SQLModel, table=True):
             input=gpt_prompt,
             text_format=ChatMessageResponse
         )
-        print("response: ", response)
-        print("response.output: ", response.output)
-        print("response.output[0]: ", response.output[0])
-        print("response.output[0].message: ", response.output[0].content)
-        print("response.output[0].content[0].parsed: ", response.output[0].content[0].parsed)
-        print("response.output[0].content[0].parsed.message: ", response.output[0].content[0].parsed.message)
         new_message = response.output[0].content[0].parsed.message
 
         conversation_history.add_message(message=new_message, sender_id=self.id, receiver_id=user_id, session=session)
 
         return new_message
+
+
+# Enum that relates significance level to time till expiration date in days
+class SignificanceLevel(Enum):
+    ONE_DAY = 1
+    ONE_WEEK = 7
+    ONE_MONTH = 30
+    THREE_MONTHS = 90
+    ONE_YEAR = 365
+    FOREVER = 100000000 # forever
+    
 
