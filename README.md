@@ -1,5 +1,7 @@
 pet_chat
 
+
+
 Must do:
 -pet class 
 -pet should have basic attributes: name, age, personality 
@@ -27,3 +29,28 @@ Required fields:
 name
 age
 personality - 
+
+Database CRUD:
+# SELECT all
+session.exec(select(Pet)).all()
+
+# SELECT one by ID
+session.get(Pet, pet_id)
+
+# SELECT with WHERE
+session.exec(select(Pet).where(Pet.age > 5)).all()
+
+# INSERT
+session.add(new_pet)
+session.commit()
+
+# UPDATE
+pet.name = "New Name"
+session.add(pet)
+session.commit()
+
+# DELETE
+session.delete(pet)
+session.commit()
+
+import sqlmodel # Must add import onto migrations bc alembic does not add 
